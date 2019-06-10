@@ -232,13 +232,12 @@ module.exports.undoHostingStep = function(message, userID)
 
 module.exports.sendMapList = function(gameType, serverName, message)
 {
-  /*The expected list is an object containing objects indexed by the map's filename, each with the following properties:*
-  *                                                                                                                     *
-  *   .sea = the number of sea provinces of the map                                                                     *
-  *   .land = the number of land provinces of the map                                                                   *
-  *   .total = the total number of provinces of the map                                                                 *
-  *                                                                                                                     *
-  **********************************************************************************************************************/
+  /*The expected list is an array containing objects, each with the following properties: *
+  *   .name = the filename of the .map file                                               *
+  *   .sea = the number of sea provinces of the map                                       *
+  *   .land = the number of land provinces of the map                                     *
+  *   .total = the total number of provinces of the map                                   *
+  *****************************************************************************************/
   var msg = "";
   let server = slaveServersModule.getByName(serverName);
 
@@ -253,18 +252,18 @@ module.exports.sendMapList = function(gameType, serverName, message)
   {
     if (err)
     {
-      rw.log("error", true, `"getMapList" slave Error:`, {User: message.author.username, gameType: gameType}, err);
-      rw.log(["host", "general"], `Could not fetch the map list.`);
+      rw.log(["host", "general"], `Error: could not get the map list:\n`, err);
       message.author.send(err);
       return;
     }
 
-    for (var filename in list)
-    {
-      msg += `${(filename).width(48)} (${list[filename].land.toString().width(4)} land, ${list[filename].sea.toString().width(3)} sea).\n`;
-    }
-
     rw.log(["host", "general"], `Map list obtained.`);
+
+    list.forEach((map) =>
+    {
+      msg += `${(map.name).width(48)} (${map.land.toString().width(4)} land, ${map.sea.toString().width(3)} sea).\n`;
+    });
+
     message.channel.send(`Here is the list of maps available:\n${msg.toBox()}`, {split: {prepend: "```", append: "```"}});
   });
 };
@@ -285,8 +284,7 @@ module.exports.sendModList = function(gameType, serverName, message)
   {
     if (err)
     {
-      rw.log("error", true, `"getModList" slave Error:`, {User: message.author.username, gameType: gameType}, err);
-      rw.log(["host", "general"], `Could not fetch the mod list.`);
+      rw.log(["host", "general"], `Error: could not get the mod list:\n`, err);
       message.author.send(err);
       return;
     }
@@ -356,8 +354,11 @@ module.exports.validateInput = function(message, userID)
           }
 
           rw.log(["host", "general"], `Game hosted.`);
-          message.author.send(`The game has been hosted on the server. You can connect to it at IP ${game.ip} and Port ${game.port}. You can find the settings below:\n\n${game.printSettings().toBox()}`);
           newsModule.post(`${message.author.username} created the game ${game.channel}.`, game.guild.id);
+          message.author.send(`The game has been hosted on the server. You can connect to it at IP ${game.ip} and Port ${game.port}. You can find the settings in the game's channel.`);
+          game.channel.send(`${game.printSettings().toBox()}`)
+          .then((msg) => msg.pin())
+          .catch((err) => game.channel.send(`Error occurred when trying to pin settings:\n\n${err.message}`));
         });
       });
     });
