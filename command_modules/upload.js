@@ -10,6 +10,7 @@ const dom4Regexp = new RegExp("(DOM4)|(DOMINIONS4)", "i");
 const dom5Regexp = new RegExp("(DOM5)|(DOMINIONS5)", "i");
 const mapRegexp = new RegExp("^MAP", "i");
 const modRegexp = new RegExp("^MOD", "i");
+const metamdRegexp = new RegExp("^METAMD", "i");
 const emitter = require("../emitter.js");
 const userUploadLimitPerDay = 5;
 var history;
@@ -30,11 +31,11 @@ module.exports.getReadableCommand = function()
   return "upload";
 };
 
-module.exports.getCommandArguments = ["`dom4`/`dom5`", "`mod`/`map`", "`[a google drive file ID]`"];
+module.exports.getCommandArguments = ["`dom4`/`dom5`", "`mod`/`map`/`metamd`", "`[a google drive file ID]`"];
 
 module.exports.getHelpText = function()
 {
-  return `Allows you to upload a map or a mod to the server through google drive. To use it, you must specify whether it's a dominions 4 or 5 mod or map, and then add the google drive file sharing link at the end of the command (which can be found when you right click a file on the drive website and click on Get Shareable Link). The file must be a .zip file containing the mod or map as is meant to be extracted into the mods or maps folder. If files with the same name exist in the server, they will be overwritten if they are mod image files, but .dm and map-related files will *not* be overwritten so as to not have an impact on ongoing games using that mod or map. To upload an updated version of a mod, just make sure you change the name to add the version number to it so it does not conflict. Please keep in mind that for bandwith reasons, each user can only upload ${userUploadLimitPerDay} map and ${userUploadLimitPerDay} mod zipfiles every day. You can upload more than one map and mod in the same zipfile, just make sure they are all zipped in the same structure in which it'll be extracted to the maps or mods folder.`;
+  return `Allows you to upload a map, mod or metamod to the server through google drive. To use it, you must specify whether it's a dominions 4 or 5 mod or map, and then add the google drive file sharing link at the end of the command (which can be found when you right click a file on the drive website and click on Get Shareable Link). The file must be a .zip file containing the mod or map as is meant to be extracted into the mods or maps folder. If files with the same name exist in the server, they will be overwritten if they are mod image files, but .dm and map-related files will *not* be overwritten so as to not have an impact on ongoing games using that mod or map. To upload an updated version of a mod, just make sure you change the name to add the version number to it so it does not conflict. Please keep in mind that for bandwith reasons, each user can only upload ${userUploadLimitPerDay} map and ${userUploadLimitPerDay} mod zipfiles every day. You can upload more than one map and mod in the same zipfile, just make sure they are all zipped in the same structure in which it'll be extracted to the maps or mods folder.`;
 };
 
 module.exports.isInvoked = function(message, command, args, isDirectMessage)
@@ -66,7 +67,7 @@ module.exports.invoke = function(message, command, options)
 
   if (mapRegexp.test(options.args[1]) === false && modRegexp.test(options.args[1]) === false)
   {
-    message.channel.send("You must specify whether this file is a map or a mod in the second argument of the command. See help for more details.");
+    message.channel.send("You must specify whether this file is a map, mod or metamod in the second argument of the command. See help for more details.");
     return;
   }
 
@@ -90,6 +91,12 @@ module.exports.invoke = function(message, command, options)
     message.channel.send(`You have reached your ${options.args[1]} upload limit for today. You can try again in ${23 - new Date().getHours()}hours and ${59 - new Date().getMinutes()} minutes or have someone else do it for you.`);
     return;
   }
+  
+   if (dom4Regexp.test(options.args[0]) === true && metamdRegexp.test(options.args[1]) === true)
+  {
+    message.channel.send("Metamods do not exist for dominions 4");
+    return;
+  }
 
   if (mapRegexp.test(options.args[1]) === true)
   {
@@ -100,7 +107,12 @@ module.exports.invoke = function(message, command, options)
   {
     action = "downloadMod";
   }
-
+  
+  else if (metamdRegexp.test(options.args[1]) === true)
+  {
+    action = "downloadMetamd";
+  }
+  
   rw.log(["upload", "general"], `${message.author.username} requested an upload of the ${options.args[0]} ${options.args[1]} file with id ${id}.`);
   upload(options.args[0], action, id, message);
 };
